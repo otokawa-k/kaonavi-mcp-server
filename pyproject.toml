@@ -1,0 +1,24 @@
+[project]
+name = "kaonavi-mcp-server"
+version = "0.1.0"
+license = { file = "LICENSE" }
+description = "Kaonavi MCP Server"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "mcp>=1.6.0",
+    "pydantic>=2.11.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-pythonpath>=0.7.3",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.uv.sources]
+kaonavi-api-executor = { path = "kaonavi_api_executor-0.1.0-py3-none-any.whl" }
