@@ -12,6 +12,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "mypy>=1.15.0",
     "pytest>=8.3.5",
     "pytest-pythonpath>=0.7.3",
 ]
@@ -20,5 +21,10 @@ dev = [
 pythonpath = ["src"]
 testpaths = ["tests"]
 
-[tool.uv.sources]
-kaonavi-api-executor = { path = "kaonavi_api_executor-0.1.0-py3-none-any.whl" }
+[tool.mypy]
+strict = true
+show_error_codes = true
+pretty = true
+warn_unused_configs = true
+allow_untyped_decorators = true
+disable_error_code = ["no-untyped-call"]
