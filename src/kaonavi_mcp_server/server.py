@@ -43,11 +43,7 @@ members_cache = MembersCache(ttl_minutes=10)
 class ListMemberFields(BaseModel):
     force_refresh: bool = Field(
         default=False,
-        description=(
-            "If True, re-fetches member data from the Kaonavi API instead of using cached data.\n"
-            "⚠️ Use this only if the field structure has changed and up-to-date metadata is required. "
-            "Normally, cached results are sufficient."
-        ),
+        description="If true, ignores cache and fetches fresh data from Kaonavi API",
         examples=[True],
     )
 
@@ -55,21 +51,13 @@ class ListMemberFields(BaseModel):
 class GetMembers(BaseModel):
     query: Optional[str] = Field(
         default=None,
-        description=(
-            "Pandas-style query string to filter the member data.\n"
-            "- Column names are in Japanese (e.g., 所属名, 社員番号).\n"
-            "- To use .str.contains(), the column name must not include full-width symbols like （）, 、 or spaces.\n"
-            "- If such symbols are included (e.g., 所属名（階層別）), use standard pandas filtering instead:\n"
-            '    df["所属名（階層別）"].str.contains("東京オフィス", na=False)'
-        ),
-        examples=["所属名.str.contains('東京オフィス')"],
+        description="pandas query string to filter members. "
+        "Example: \"age >= 30 and city == '渋谷'\"",
+        examples=["age >= 30 and department == '営業'"],
     )
     force_refresh: bool = Field(
         default=False,
-        description=(
-            "If True, bypasses cache and fetches fresh data from the Kaonavi API.\n"
-            "⚠️ Use this only when explicitly instructed. Cached data is sufficient in most cases."
-        ),
+        description="If true, ignores cache and fetches fresh data from Kaonavi API",
         examples=[True],
     )
 
@@ -136,14 +124,14 @@ async def serve() -> None:
                 description="""
                     List available fields in Kaonavi member data.
 
-                    This tool returns metadata for each field in the member dataset,
-                    including its type and example values. Use this to understand which fields 
-                    can be used for filtering in subsequent queries.
+                    This tool returns metadata about each field in the member dataset,
+                    including its type and example values. Useful when the user or AI needs
+                    to understand what fields can be used in filtering.
 
                     Parameters:
-                    - force_refresh (optional): Boolean to bypass cache and fetch fresh data.  
-                    ⚠️ Avoid using this unless specifically required. Cached data is usually sufficient.
-                    """,
+                    - force_refresh: (optional) Boolean to bypass cache and fetch fresh data.
+                                    ⚠️ Avoid using this unless specifically needed.
+                """,
                 inputSchema=ListMemberFields.model_json_schema(),
             ),
             Tool(
@@ -151,28 +139,20 @@ async def serve() -> None:
                 description="""
                     Retrieve filtered member list from Kaonavi.
 
-                    This tool returns member data, optionally filtered with a pandas-style query string.
-                    Use `list_member_fields` first to check available field names and value patterns.
-
-                    Note on `query`:
-                    - Column names are written in Japanese (e.g., 所属名, 社員番号).
-                    - `.str.contains()` and other methods can only be used if the column name:
-                    - contains only Japanese characters and/or underscores
-                    - does NOT include full-width parentheses（）、dots（.）, or spaces
-                    - If the column name includes full-width symbols (e.g., 所属名（階層別）),
-                    `query()` may fail. Use pandas filtering instead:
-                        Example: df["所属名（階層別）"].str.contains("東京オフィス", na=False)
+                    This tool returns member information, optionally filtered using a pandas-style query.
+                    To know which fields are available and what values they might contain, 
+                    use `list_member_fields` beforehand to inspect the structure of the data.
 
                     Parameters:
-                    - query (optional): A pandas-style query string.
-                    - force_refresh (optional): Boolean to bypass cache and fetch fresh data.  
-                    ⚠️ Use only when explicitly requested. Cached data is sufficient in most cases.
+                    - query: (optional) A pandas-style query string
+                    - force_refresh: (optional) Boolean to bypass cache and fetch fresh data.
+                                    ⚠️ Only use this when explicitly instructed, as cached data is usually sufficient.
 
-                    Examples:
-                    - query: "所属名.str.contains('東京オフィス')"
-                    - query: "`部署` == '営業部'"
-                    - fallback: df["所属名（階層別）"].str.contains("東京オフィス", na=False)
-                    """,
+                    Examples for query:
+                    - "age >= 30 and department == '営業'"
+                    - "city == '渋谷'"
+                    - "name.str.contains('田中')"
+                """,
                 inputSchema=GetMembers.model_json_schema(),
             ),
         ]
