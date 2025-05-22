@@ -7,10 +7,8 @@ from mcp.types import (
     TextContent,
     Tool,
 )
-from datetime import datetime, timedelta
-import pandas as pd
 from pydantic import BaseModel, Field
-from kaonavi_api_executor.auth.api_access_token_fetcher import ApiAccessTokenFetcher
+from kaonavi_api_executor.auth.access_token import AccessToken
 from kaonavi_api_executor.api_executor import ApiExecutor
 from kaonavi_api_executor.api.get_members_api import GetMembersApi
 from kaonavi_api_executor.http_client.http_methods import Post
@@ -19,25 +17,9 @@ from kaonavi_api_executor.transformers.members_member_data_flattener import (
 )
 
 
-# --- メンバー情報のキャッシュ ---
-class MembersCache:
-    def __init__(self, ttl_minutes: int = 10):
-        self._dataframe: pd.DataFrame | None = None
-        self._timestamp: datetime | None = None
-        self._ttl = timedelta(minutes=ttl_minutes)
-
-    def get_df(self) -> pd.DataFrame | None:
-        if self._timestamp and datetime.now() - self._timestamp < self._ttl:
-            return self._dataframe
-        return None
-
-    def set_df(self, df: pd.DataFrame) -> None:
-        self._dataframe = df
-        self._timestamp = datetime.now()
-
-
-# --- インスタンスをグローバルに用意 ---
-members_cache = MembersCache(ttl_minutes=10)
+# Initialize the API executor with the access token and API model
+access_token = AccessToken(http_method=Post())
+members_api_executor = ApiExecutor(access_token=access_token, api=GetMembersApi())
 
 
 class ListMemberFields(BaseModel):
@@ -67,27 +49,11 @@ class KaonaviTools(str, Enum):
     GET_MEMBERS = "get_members"
 
 
-async def get_members_df(force_refresh: bool = False) -> pd.DataFrame:
-    if not force_refresh:
-        cached_df = members_cache.get_df()
-        if cached_df is not None:
-            return cached_df
-
-    fetcher = ApiAccessTokenFetcher(Post())
-    token = await fetcher.fetch_access_token()
-    api = GetMembersApi(token=token)
-    api_executor = ApiExecutor(api)
-    result = await api_executor.execute()
+async def list_member_fields(force_refresh: bool = False) -> str:
+    result = await members_api_executor.execute()
 
     flattener = MembersMemberDataFlattener(result)
-    df = flattener.flatten()
-
-    members_cache.set_df(df)
-    return df
-
-
-async def list_member_fields(force_refresh: bool = False) -> str:
-    df = await get_members_df(force_refresh=force_refresh)
+    df, _ = flattener.flatten()
 
     info = {
         col: {
@@ -101,7 +67,10 @@ async def list_member_fields(force_refresh: bool = False) -> str:
 
 
 async def get_members(query: str | None = None, force_refresh: bool = False) -> str:
-    df = await get_members_df(force_refresh=force_refresh)
+    result = await members_api_executor.execute()
+
+    flattener = MembersMemberDataFlattener(result)
+    df, _ = flattener.flatten()
 
     if query:
         try:
