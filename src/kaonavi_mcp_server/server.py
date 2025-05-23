@@ -44,6 +44,20 @@ class GetMembers(BaseModel):
     )
 
 
+class GetSheets(BaseModel):
+    query: Optional[str] = Field(
+        default=None,
+        description="pandas query string to filter members. "
+        "Example: \"age >= 30 and city == '渋谷'\"",
+        examples=["age >= 30 and department == '営業'"],
+    )
+    force_refresh: bool = Field(
+        default=False,
+        description="If true, ignores cache and fetches fresh data from Kaonavi API",
+        examples=[True],
+    )
+
+
 class KaonaviTools(str, Enum):
     LIST_FIELDS = "list_member_fields"
     GET_MEMBERS = "get_members"
