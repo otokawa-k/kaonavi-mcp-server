@@ -1,6 +1,7 @@
 from enum import Enum
 import json
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any, Dict, Optional
 from mcp import stdio_server
 from mcp.server import Server
 from mcp.types import (
@@ -80,11 +81,35 @@ class GetSheets(BaseModel):
     )
 
 
+class GetSheetIds(BaseModel):
+    pass
+
+
 class KaonaviTools(str, Enum):
     LIST_MEMBERS_FIELDS = "list_members_fields"
     LIST_SHEETS_FIELDS = "list_sheets_fields"
     GET_MEMBERS = "get_members"
     GET_SHEETS = "get_sheets"
+    GET_SHEET_IDS = "get_sheet_ids"
+
+
+def load_sheets_config() -> Dict[str, Any]:
+    config_path = Path(__file__).parent.parent.parent / "sheets_config.json"
+    if not config_path.exists():
+        raise FileNotFoundError(
+            "sheets_config.json not found. Please provide the file in the project root."
+        )
+    with open(config_path, encoding="utf-8") as f:
+        data = json.load(f)
+    if (
+        not isinstance(data, dict)
+        or "sheets" not in data
+        or not isinstance(data["sheets"], list)
+    ):
+        raise ValueError(
+            "sheets_config.json is invalid. 'sheets' key with a list value is required."
+        )
+    return data
 
 
 async def list_members_fields(no_cache: bool = False) -> str:
@@ -155,6 +180,12 @@ async def get_sheets(
 
     member_data = df.to_dict(orient="records")
     return json.dumps(member_data, indent=2, ensure_ascii=False)
+
+
+async def get_sheet_ids() -> str:
+    config = load_sheets_config()
+    sheets = config["sheets"]
+    return json.dumps(sheets, ensure_ascii=False, indent=2)
 
 
 async def serve() -> None:
@@ -241,6 +272,15 @@ async def serve() -> None:
                 """,
                 inputSchema=GetSheets.model_json_schema(),
             ),
+            Tool(
+                name=KaonaviTools.GET_SHEET_IDS,
+                description="""
+                    Get a list of available sheet IDs and names for use with get_sheets.
+                    The list is loaded from sheets_config.json in the project root.
+                    If the file is missing or invalid, an error will be returned.
+                """,
+                inputSchema=GetSheetIds.model_json_schema(),
+            ),
         ]
 
     @server.call_tool()
@@ -293,6 +333,13 @@ async def serve() -> None:
                         text=f"Members information from sheet {sheet_id}:\n{members}",
                     )
                 ]
+
+            case KaonaviTools.GET_SHEET_IDS:
+                try:
+                    sheet_ids = await get_sheet_ids()
+                except Exception as e:
+                    return [TextContent(type="text", text=f"[ERROR] {e}")]
+                return [TextContent(type="text", text=f"Sheet IDs:\n{sheet_ids}")]
 
             case _:
                 raise ValueError(f"Unknown tool: {name}")
