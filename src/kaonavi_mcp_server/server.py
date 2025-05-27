@@ -29,7 +29,7 @@ get_sheets_api = GetSheetsApi()
 sheets_api_executor = ApiExecutor(access_token=access_token, api=get_sheets_api)
 
 
-class ListMembersFields(BaseModel):
+class DescribeMemberFields(BaseModel):
     no_cache: bool = Field(
         default=False,
         description="If true, ignores cache and fetches fresh data from Kaonavi API",
@@ -37,7 +37,7 @@ class ListMembersFields(BaseModel):
     )
 
 
-class ListSheetsFields(BaseModel):
+class DescribeSheetFields(BaseModel):
     sheet_id: int = Field(
         description="ID of the sheet to retrieve fields from",
         examples=[1, 2, 3],
@@ -86,8 +86,8 @@ class GetSheetIds(BaseModel):
 
 
 class KaonaviTools(str, Enum):
-    LIST_MEMBERS_FIELDS = "list_members_fields"
-    LIST_SHEETS_FIELDS = "list_sheets_fields"
+    DESCRIBE_MEMBER_FIELDS = "describe_member_fields"
+    DESCRIBE_SHEET_FIELDS = "describe_sheet_fields"
     GET_MEMBERS = "get_members"
     GET_SHEETS = "get_sheets"
     GET_SHEET_IDS = "get_sheet_ids"
@@ -112,7 +112,7 @@ def load_sheets_config() -> Dict[str, Any]:
     return data
 
 
-async def list_members_fields(no_cache: bool = False) -> str:
+async def describe_member_fields(no_cache: bool = False) -> str:
     result = await members_api_executor.execute(no_cache=no_cache)
 
     flattener = MembersMemberDataFlattener(result)
@@ -129,7 +129,7 @@ async def list_members_fields(no_cache: bool = False) -> str:
     return json.dumps(info, indent=2, ensure_ascii=False)
 
 
-async def list_sheets_fields(sheet_id: int, no_cache: bool = False) -> str:
+async def describe_sheet_fields(sheet_id: int, no_cache: bool = False) -> str:
     get_sheets_api.set_sheet_id(sheet_id)
     result = await sheets_api_executor.execute(no_cache=no_cache)
 
@@ -195,7 +195,7 @@ async def serve() -> None:
     async def list_tools() -> list[Tool]:
         return [
             Tool(
-                name=KaonaviTools.LIST_MEMBERS_FIELDS,
+                name=KaonaviTools.DESCRIBE_MEMBER_FIELDS,
                 description="""
                     List available fields in Kaonavi member data.
 
@@ -207,10 +207,10 @@ async def serve() -> None:
                     - no_cache: (optional) Boolean to bypass cache and fetch fresh data.
                                     ⚠️ Avoid using this unless specifically needed.
                 """,
-                inputSchema=ListMembersFields.model_json_schema(),
+                inputSchema=DescribeMemberFields.model_json_schema(),
             ),
             Tool(
-                name=KaonaviTools.LIST_SHEETS_FIELDS,
+                name=KaonaviTools.DESCRIBE_SHEET_FIELDS,
                 description="""
                     List available fields in a specific sheet of Kaonavi member data.
 
@@ -223,7 +223,7 @@ async def serve() -> None:
                     - no_cache: (optional) Boolean to bypass cache and fetch fresh data.
                                     ⚠️ Avoid using this unless specifically needed.
                 """,
-                inputSchema=ListSheetsFields.model_json_schema(),
+                inputSchema=DescribeSheetFields.model_json_schema(),
             ),
             Tool(
                 name=KaonaviTools.GET_MEMBERS,
@@ -232,7 +232,7 @@ async def serve() -> None:
 
                     This tool returns member information, optionally filtered using a pandas-style query.
                     To know which fields are available and what values they might contain, 
-                    use `list_members_fields` beforehand to inspect the structure of the data.
+                    use `describe_member_fields` beforehand to inspect the structure of the data.
 
                     Parameters:
                     - query: (optional) A pandas-style query string
@@ -254,7 +254,7 @@ async def serve() -> None:
                     This tool fetches member information from a specified sheet ID,
                     optionally filtered using a pandas-style query.
                     To know which fields are available and what values they might contain, 
-                    use `list_sheets_fields` beforehand to inspect the structure of the data.
+                    use `describe_sheet_fields` beforehand to inspect the structure of the data.
 
                     Note: The filtering key for members in GET_SHEETS is the employee number (社員番号).
                     Employee numbers can be obtained from GET_MEMBERS.
@@ -286,19 +286,19 @@ async def serve() -> None:
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         match name:
-            case KaonaviTools.LIST_MEMBERS_FIELDS:
-                info = await list_members_fields(
+            case KaonaviTools.DESCRIBE_MEMBER_FIELDS:
+                info = await describe_member_fields(
                     no_cache=arguments.get("no_cache", False)
                 )
                 return [TextContent(type="text", text=f"Available fields:\n{info}")]
 
-            case KaonaviTools.LIST_SHEETS_FIELDS:
+            case KaonaviTools.DESCRIBE_SHEET_FIELDS:
                 sheet_id = arguments.get("sheet_id")
                 if sheet_id is None:
                     raise ValueError(
-                        "sheet_id is required for list_sheets_fields tool."
+                        "sheet_id is required for describe_sheet_fields tool."
                     )
-                info = await list_sheets_fields(
+                info = await describe_sheet_fields(
                     sheet_id=sheet_id,
                     no_cache=arguments.get("no_cache", False),
                 )
