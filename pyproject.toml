@@ -5,17 +5,10 @@ license = { file = "LICENSE" }
 description = "Kaonavi MCP Server"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "mcp>=1.6.0",
-    "pydantic>=2.11.3",
-]
+dependencies = ["kaonavi-api-executor", "mcp>=1.6.0", "pydantic>=2.11.3"]
 
 [dependency-groups]
-dev = [
-    "mypy>=1.15.0",
-    "pytest>=8.3.5",
-    "pytest-pythonpath>=0.7.3",
-]
+dev = ["mypy>=1.15.0", "pytest>=8.3.5", "pytest-pythonpath>=0.7.3"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
@@ -28,3 +21,6 @@ pretty = true
 warn_unused_configs = true
 allow_untyped_decorators = true
 disable_error_code = ["no-untyped-call"]
+
+[tool.uv.sources]
+kaonavi-api-executor = { url = "https://github.com/otokawa-k/kaonavi-api-executor/releases/download/v0.3.0/kaonavi_api_executor-0.3.0-py3-none-any.whl" }
