@@ -16,7 +16,7 @@ Provides an MCP server that utilizes the Kaonavi API.
    - Retrieves a list of sheet IDs set in sheets_config.json.
 
 ## Installation
-1. Download [kaonavi_api_executor-0.3.0-py3-none-any.whl](https://github.com/otokawa-k/kaonavi-api-executor/releases/download/v0.3.0/kaonavi_api_executor-0.3.0-py3-none-any.whl) and install it with the following command:
+1. Download [kaonavi_api_executor-0.3.0-py3-none-any.whl](https://github.com/taka-016/kaonavi-api-executor/releases/download/v0.3.0/kaonavi_api_executor-0.3.0-py3-none-any.whl) and install it with the following command:
 ```bash
 uv pip install kaonavi_api_executor-0.3.0-py3-none-any.whl
 ```
